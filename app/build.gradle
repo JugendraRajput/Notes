@@ -1,0 +1,24 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    compileSdkVersion 33
+    namespace 'com.jdgames.notes'
+    defaultConfig {
+        applicationId "com.jdgames.notes"
+        minSdkVersion 21
+        targetSdkVersion 33
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.gms:play-services-ads:21.5.0'
+}
