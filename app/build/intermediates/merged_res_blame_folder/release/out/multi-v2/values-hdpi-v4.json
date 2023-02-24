@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.jdgames.notes.app-mergeReleaseResources-26:/values-hdpi-v4/values-hdpi-v4.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\jugen\\.gradle\\caches\\transforms-3\\cc0415c53eee8656093dee660546a422\\transformed\\appcompat-1.6.0\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "13",
+                        "endOffsets": "327"
+                    }
+                }
+            ]
+        }
+    ]
+}
