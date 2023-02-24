@@ -5,12 +5,15 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -18,6 +21,7 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.RequestConfiguration;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
         ListView listView = findViewById(R.id.listView);
 
-        final SharedPreferences sharedPreferences = this.getSharedPreferences("com.jdgames.notes", Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = this.getSharedPreferences("com.jdgames.notes", Context.MODE_PRIVATE);
         try {
             notesList = (ArrayList<String>) ObjectSerializer.deserialize(sharedPreferences.getString("notes", ObjectSerializer.serialize(new ArrayList<String>())));
             notesListView = (ArrayList<String>) ObjectSerializer.deserialize(sharedPreferences.getString("notes", ObjectSerializer.serialize(new ArrayList<String>())));
@@ -78,11 +82,10 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
         listView.setOnItemLongClickListener((parent, view, position, id) -> {
-            new AlertDialog.Builder(MainActivity.this)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+            new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle("Delete Note")
                     .setMessage("Do you want to Delete this Note?")
-                    .setPositiveButton("Delete", (dialog, which) -> {
+                    .setPositiveButton("Delete", (dialogInterface, i) -> {
                         notesList.remove(position);
                         notesListView.remove(position);
                         try {
@@ -92,26 +95,24 @@ public class MainActivity extends AppCompatActivity {
                         }
                         arrayAdapter.notifyDataSetChanged();
                     })
-                    .setNegativeButton("No", null)
+                    .setNegativeButton("Cancel", null)
                     .show();
             return true;
         });
 
-        /*// Initialize the Mobile Ads SDK.
-        MobileAds.initialize(this, initializationStatus -> {
-
-        });
+        // Initialize the Mobile Ads SDK.
+        MobileAds.initialize(this);
 
         // Set your test devices. Check your logcat output for the hashed device ID to
         // get test ads on a physical device. e.g.
         // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
         // to get test ads on this device."
         MobileAds.setRequestConfiguration(
-                new RequestConfiguration.Builder().setTestDeviceIds(Collections.singletonList("ABCDEF012345"))
+                new RequestConfiguration.Builder().setTestDeviceIds(Collections.singletonList("4dbf5439"))
                         .build());
         adView = findViewById(R.id.ad_view);
         AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);*/
+        adView.loadAd(adRequest);
     }
 
     @Override

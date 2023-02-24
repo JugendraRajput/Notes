@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.jdgames.notes.app-mergeReleaseResources-26:/values-port/values-port.xml",
+            "outputFile": "com.jdgames.notes.app-mergeReleaseResources-33:/values-port/values-port.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\jugen\\.gradle\\caches\\transforms-3\\cc0415c53eee8656093dee660546a422\\transformed\\appcompat-1.6.0\\res\\values-port\\values-port.xml",
+                    "source": "C:\\Users\\jugen\\.gradle\\caches\\transforms-3\\901bd1e79ca3a5e2188025eed5ecc80d\\transformed\\appcompat-1.6.1\\res\\values-port\\values-port.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
