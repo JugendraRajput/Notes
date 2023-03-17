@@ -123,8 +123,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         MobileAds.initialize(this);
-        MobileAds.setRequestConfiguration(new RequestConfiguration.Builder()
-                .setTestDeviceIds(Arrays.asList("2751D7B27D567BA365307E06C4D8215E")).build());
 
         AdRequest adRequest = new AdRequest.Builder().build();
         adView = findViewById(R.id.ad_view);
