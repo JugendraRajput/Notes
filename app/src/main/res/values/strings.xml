@@ -1,10 +1,15 @@
 <resources>
     <string name="app_name">Notes</string>
     <string name="write_something_here">Write something here</string>
+    <string name="add_note">Add Note</string>
 
-    <!-- This is an application ID. Replace with your own application id, You will get it from AdMob. -->
-    <string name="AdMob_Application_ID">ca-app-pub-3940256099942544~3347511713</string>
-
-    <!-- This is an ad unit ID for a test ad. Replace with your own banner ad unit id. -->
+    <!--  Test Ad IDs  -->
+    <!--<string name="AdMob_Application_ID">ca-app-pub-3940256099942544~3347511713</string>
     <string name="banner_ad_unit_id">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="interstitial_ad_unit_id">ca-app-pub-3940256099942544/1033173712</string>-->
+
+    <!--  Original Ad IDs  -->
+    <string name="AdMob_Application_ID">ca-app-pub-8010277986181783~3204406311</string>
+    <string name="banner_ad_unit_id">ca-app-pub-8010277986181783/9630213860</string>
+    <string name="interstitial_ad_unit_id">ca-app-pub-8010277986181783/3570118267</string>
 </resources>

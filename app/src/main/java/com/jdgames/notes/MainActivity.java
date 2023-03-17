@@ -1,5 +1,7 @@
 package com.jdgames.notes;
 
+import static com.jdgames.notes.Config.sharedPreferencesName;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -19,11 +22,15 @@ import android.widget.ListView;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.RequestConfiguration;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
@@ -32,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     static ArrayList<String> notesListView = new ArrayList<>();
     static ArrayAdapter<String> arrayAdapter;
     private AdView adView;
+    private InterstitialAd interstitialAd = null;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -47,9 +55,8 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, ShowNote.class);
             startActivity(intent);
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override
@@ -57,9 +64,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ListView listView = findViewById(R.id.listView);
-
-        SharedPreferences sharedPreferences = this.getSharedPreferences("com.jdgames.notes", Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = this.getSharedPreferences(sharedPreferencesName, Context.MODE_PRIVATE);
         try {
             notesList = (ArrayList<String>) ObjectSerializer.deserialize(sharedPreferences.getString("notes", ObjectSerializer.serialize(new ArrayList<String>())));
             notesListView = (ArrayList<String>) ObjectSerializer.deserialize(sharedPreferences.getString("notes", ObjectSerializer.serialize(new ArrayList<String>())));
@@ -72,8 +77,9 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, notesListView);
+
+        ListView listView = findViewById(R.id.listView);
         listView.setAdapter(arrayAdapter);
 
         listView.setOnItemClickListener((parent, view, position, id) -> {
@@ -82,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
         listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            loadInterstitialAd();
             new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle("Delete Note")
                     .setMessage("Do you want to Delete this Note?")
@@ -94,25 +101,52 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                         arrayAdapter.notifyDataSetChanged();
+                        interstitialAd.show(MainActivity.this);
                     })
-                    .setNegativeButton("Cancel", null)
+                    .setOnCancelListener(dialog -> {
+                        if (interstitialAd != null) {
+                            interstitialAd.show(MainActivity.this);
+                        }
+                    })
+                    .setOnDismissListener(dialog -> {
+                        if (interstitialAd != null) {
+                            interstitialAd.show(MainActivity.this);
+                        }
+                    })
+                    .setNegativeButton("Cancel", (dialog, which) -> {
+                        if (interstitialAd != null) {
+                            interstitialAd.show(MainActivity.this);
+                        }
+                    })
                     .show();
             return true;
         });
 
-        // Initialize the Mobile Ads SDK.
         MobileAds.initialize(this);
+        MobileAds.setRequestConfiguration(new RequestConfiguration.Builder()
+                .setTestDeviceIds(Arrays.asList("2751D7B27D567BA365307E06C4D8215E")).build());
 
-        // Set your test devices. Check your logcat output for the hashed device ID to
-        // get test ads on a physical device. e.g.
-        // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
-        // to get test ads on this device."
-        MobileAds.setRequestConfiguration(
-                new RequestConfiguration.Builder().setTestDeviceIds(Collections.singletonList("4dbf5439"))
-                        .build());
-        adView = findViewById(R.id.ad_view);
         AdRequest adRequest = new AdRequest.Builder().build();
+        adView = findViewById(R.id.ad_view);
         adView.loadAd(adRequest);
+    }
+
+    public void loadInterstitialAd() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+        InterstitialAd.load(this, getResources().getString(R.string.interstitial_ad_unit_id), adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd mInterstitialAd) {
+                        interstitialAd = mInterstitialAd;
+                        Log.i("TAG", "onAdLoaded");
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        Log.d("TAG", loadAdError.toString());
+                        interstitialAd = null;
+                    }
+                });
     }
 
     @Override
