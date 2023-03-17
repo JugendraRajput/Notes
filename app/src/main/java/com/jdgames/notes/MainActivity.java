@@ -101,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                         arrayAdapter.notifyDataSetChanged();
-                        interstitialAd.show(MainActivity.this);
+                        if (interstitialAd != null) {
+                            interstitialAd.show(MainActivity.this);
+                        }
                     })
                     .setOnCancelListener(dialog -> {
                         if (interstitialAd != null) {
