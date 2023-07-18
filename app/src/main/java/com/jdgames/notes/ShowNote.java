@@ -2,18 +2,17 @@ package com.jdgames.notes;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.EditText;
-import android.widget.Toast;
+
+import com.jdgames.notes.Database.DatabaseClient;
+import com.jdgames.notes.Entity.Notes;
 
 public class ShowNote extends AppCompatActivity {
 
-    SharedPreferences sharedPreferences;
     Boolean addNew = false;
     EditText editText;
-    int position;
+    int id = -1;
     String previousNote = "";
 
     @Override
@@ -21,15 +20,15 @@ public class ShowNote extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_show_note);
 
-        sharedPreferences = this.getSharedPreferences("com.jdgames.notes", Context.MODE_PRIVATE);
         editText = findViewById(R.id.editText);
-
-        position = getIntent().getIntExtra("position", -1);
-        if (position == -1) {
+        id = getIntent().getIntExtra("id", -1);
+        if (id == -1) {
             addNew = true;
         } else {
-            previousNote = MainActivity.notesList.get(position);
-            editText.setText(previousNote);
+            Notes notes = DatabaseClient.getInstance(getApplicationContext())
+                    .getAppDatabase().notesDao().getNoteWithID(id);
+            previousNote = notes.getSubtitle();
+            editText.setText(notes.getSubtitle());
         }
     }
 
@@ -37,29 +36,28 @@ public class ShowNote extends AppCompatActivity {
     public void onBackPressed() {
         String note = editText.getText().toString().trim();
         if (addNew) {
-            if (!note.equals("")) {
-                MainActivity.notesList.add(note);
-                MainActivity.notesListView.add(note);
-                Toast.makeText(this, "Note saved!", Toast.LENGTH_SHORT).show();
+            if (!note.isEmpty()) {
+                Notes notes = new Notes();
+                notes.setTitle("Title");
+                notes.setSubtitle(note);
+                DatabaseClient.getInstance(getApplicationContext())
+                        .getAppDatabase().notesDao().insert(notes);
             }
         } else {
-            if (!previousNote.equals(note)){
-                MainActivity.notesList.set(position, note);
-                MainActivity.notesListView.set(position, note);
-                Toast.makeText(this, "Note saved!", Toast.LENGTH_SHORT).show();
+            if (note.isEmpty()) {
+                DatabaseClient.getInstance(getApplicationContext())
+                        .getAppDatabase().notesDao().deleteNoteWithID(id);
+            } else {
+                if (!previousNote.equals(note)) {
+                    Notes notes = new Notes();
+                    notes.setTitle("Title");
+                    notes.setSubtitle(note);
+                    notes.setId(id);
+                    DatabaseClient.getInstance(getApplicationContext())
+                            .getAppDatabase().notesDao().update(notes);
+                }
             }
         }
-        try {
-            sharedPreferences.edit().putString("notes", ObjectSerializer.serialize(MainActivity.notesList)).apply();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        for (int i = 0; i < MainActivity.notesListView.size(); i++) {
-            if (MainActivity.notesListView.get(i).length() > 25) {
-                MainActivity.notesListView.set(i, MainActivity.notesListView.get(i).substring(0, 25) + "...");
-            }
-        }
-        MainActivity.arrayAdapter.notifyDataSetChanged();
         finish();
     }
 }

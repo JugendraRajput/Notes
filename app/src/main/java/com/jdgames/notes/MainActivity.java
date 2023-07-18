@@ -1,45 +1,52 @@
 package com.jdgames.notes;
 
-import static com.jdgames.notes.Config.sharedPreferencesName;
-
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.IntentSender;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import android.widget.GridView;
+import android.widget.Toast;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.RequestConfiguration;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.play.core.appupdate.AppUpdateInfo;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.install.InstallStateUpdatedListener;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.InstallStatus;
+import com.google.android.play.core.install.model.UpdateAvailability;
+import com.google.android.play.core.tasks.Task;
+import com.jdgames.notes.Database.DatabaseClient;
+import com.jdgames.notes.Entity.Notes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    static ArrayList<String> notesList = new ArrayList<>();
-    static ArrayList<String> notesListView = new ArrayList<>();
-    static ArrayAdapter<String> arrayAdapter;
     private AdView adView;
     private InterstitialAd interstitialAd = null;
+
+    List<NoteParse> notesArrayList = new ArrayList<>();
+    GridViewAdapter gridViewAdapter;
+
+    AppUpdateManager appUpdateManager;
+    private InstallStateUpdatedListener installStateUpdatedListener;
+    public static int FLEXIBLE_APP_UPDATE_REQ_CODE = 20202;
+    public static int IMMEDIATE_APP_UPDATE_REQ_CODE = 10101;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -51,9 +58,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         super.onOptionsItemSelected(item);
-        if (item.getItemId() == R.id.addNote) {
-            Intent intent = new Intent(MainActivity.this, ShowNote.class);
-            startActivity(intent);
+        if (item.getItemId() == R.id.about) {
+            Toast.makeText(this, "Developed with ❤️ by JD", Toast.LENGTH_SHORT).show();
             return true;
         }
         return false;
@@ -64,43 +70,27 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        SharedPreferences sharedPreferences = this.getSharedPreferences(sharedPreferencesName, Context.MODE_PRIVATE);
-        try {
-            notesList = (ArrayList<String>) ObjectSerializer.deserialize(sharedPreferences.getString("notes", ObjectSerializer.serialize(new ArrayList<String>())));
-            notesListView = (ArrayList<String>) ObjectSerializer.deserialize(sharedPreferences.getString("notes", ObjectSerializer.serialize(new ArrayList<String>())));
-            assert notesListView != null;
-            for (int i = 0; i < notesListView.size(); i++) {
-                if (notesListView.get(i).length() > 30) {
-                    notesListView.set(i, notesListView.get(i).substring(0, 25) + "...");
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, notesListView);
+        notesArrayList.add(new NoteParse(-1, "", ""));
+        gridViewAdapter = new GridViewAdapter(this, R.layout.grid_view, notesArrayList);
+        GridView gridView = findViewById(R.id.gridView);
+        gridView.setAdapter(gridViewAdapter);
 
-        ListView listView = findViewById(R.id.listView);
-        listView.setAdapter(arrayAdapter);
-
-        listView.setOnItemClickListener((parent, view, position, id) -> {
+        gridView.setOnItemClickListener((parent, view, position, id) -> {
             Intent intent = new Intent(MainActivity.this, ShowNote.class);
-            intent.putExtra("position", position);
+            intent.putExtra("id", notesArrayList.get(position).getId());
             startActivity(intent);
         });
-        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+
+        gridView.setOnItemLongClickListener((parent, view, position, id) -> {
             loadInterstitialAd();
             new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle("Delete Note")
                     .setMessage("Do you want to Delete this Note?")
                     .setPositiveButton("Delete", (dialogInterface, i) -> {
-                        notesList.remove(position);
-                        notesListView.remove(position);
-                        try {
-                            sharedPreferences.edit().putString("notes", ObjectSerializer.serialize(MainActivity.notesList)).apply();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        arrayAdapter.notifyDataSetChanged();
+                        DatabaseClient.getInstance(getApplicationContext())
+                                .getAppDatabase().notesDao().deleteNoteWithID(notesArrayList.get(position).getId());
+                        notesArrayList.remove(position);
+                        gridViewAdapter.notifyDataSetChanged();
                         if (interstitialAd != null) {
                             interstitialAd.show(MainActivity.this);
                         }
@@ -129,6 +119,17 @@ public class MainActivity extends AppCompatActivity {
         AdRequest adRequest = new AdRequest.Builder().build();
         adView = findViewById(R.id.ad_view);
         adView.loadAd(adRequest);
+
+        appUpdateManager = AppUpdateManagerFactory.create(getApplicationContext());
+        installStateUpdatedListener = state -> {
+            if (state.installStatus() == InstallStatus.DOWNLOADED) {
+                popupSnackBarForCompleteUpdate();
+            } else if (state.installStatus() == InstallStatus.INSTALLED) {
+                removeInstallStateUpdateListener();
+            }
+        };
+        appUpdateManager.registerListener(installStateUpdatedListener);
+        checkUpdate();
     }
 
     public void loadInterstitialAd() {
@@ -150,19 +151,98 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+
+        LoadNotes();
+
+        if (adView != null) {
+            adView.resume();
+        }
+    }
+
+    public void LoadNotes() {
+        notesArrayList.clear();
+        List<Notes> notesList = DatabaseClient.getInstance(getApplicationContext())
+                .getAppDatabase().notesDao().getAll();
+        for (Notes note : notesList) {
+            notesArrayList.add(new NoteParse(note.getId(), note.getTitle(), note.getSubtitle()));
+        }
+        notesArrayList.add(new NoteParse(-1, "", ""));
+        gridViewAdapter.notifyDataSetChanged();
+    }
+
+    private void checkUpdate() {
+        Task<AppUpdateInfo> appUpdateInfoTask = appUpdateManager.getAppUpdateInfo();
+        appUpdateInfoTask.addOnSuccessListener(appUpdateInfo -> {
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+                try {
+                    appUpdateManager.startUpdateFlowForResult(appUpdateInfo, AppUpdateType.IMMEDIATE, this, IMMEDIATE_APP_UPDATE_REQ_CODE);
+                } catch (IntentSender.SendIntentException e) {
+                    e.printStackTrace();
+                }
+            } else if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+                try {
+                    appUpdateManager.startUpdateFlowForResult(appUpdateInfo, AppUpdateType.FLEXIBLE, this, FLEXIBLE_APP_UPDATE_REQ_CODE);
+                } catch (IntentSender.SendIntentException e) {
+                    e.printStackTrace();
+                }
+            } else if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                try {
+                    appUpdateManager.startUpdateFlowForResult(appUpdateInfo, AppUpdateType.IMMEDIATE, this, IMMEDIATE_APP_UPDATE_REQ_CODE);
+                } catch (IntentSender.SendIntentException e) {
+                    e.printStackTrace();
+                }
+            } else if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
+                popupSnackBarForCompleteUpdate();
+            }
+        });
+    }
+
+    private void popupSnackBarForCompleteUpdate() {
+        Snackbar.make(findViewById(android.R.id.content).getRootView(), "New app is ready!", Snackbar.LENGTH_INDEFINITE)
+                .setAction("Install", view -> {
+                    if (appUpdateManager != null) {
+                        appUpdateManager.completeUpdate();
+                    }
+                })
+                .setActionTextColor(getResources().getColor(R.color.colorPrimary))
+                .show();
+    }
+
+    private void removeInstallStateUpdateListener() {
+        if (appUpdateManager != null) {
+            appUpdateManager.unregisterListener(installStateUpdatedListener);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        removeInstallStateUpdateListener();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == IMMEDIATE_APP_UPDATE_REQ_CODE) {
+            if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(getApplicationContext(), "Update canceled!", Toast.LENGTH_LONG).show();
+            } else if (resultCode == RESULT_OK) {
+                Toast.makeText(getApplicationContext(), "Update success!", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "Update Failed!", Toast.LENGTH_LONG).show();
+                checkUpdate();
+            }
+        }
+    }
+
+    @Override
     public void onPause() {
         if (adView != null) {
             adView.pause();
         }
         super.onPause();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (adView != null) {
-            adView.resume();
-        }
     }
 
     @Override
