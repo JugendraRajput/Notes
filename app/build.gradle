@@ -2,14 +2,14 @@ plugins {
     id 'com.android.application'
 }
 android {
-    compileSdkVersion 33
+    compileSdk 33
     namespace 'com.jdgames.notes'
     defaultConfig {
         applicationId 'com.jdgames.notes'
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 4
-        versionName '0.0.4'
+        versionCode 5
+        versionName '0.0.5'
     }
     buildTypes {
         release {
