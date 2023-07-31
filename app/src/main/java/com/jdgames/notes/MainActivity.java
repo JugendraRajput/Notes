@@ -2,6 +2,9 @@ package com.jdgames.notes;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import android.content.Intent;
 import android.content.IntentSender;
@@ -10,7 +13,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.GridView;
 import android.widget.Toast;
 
 import com.google.android.gms.ads.AdRequest;
@@ -33,6 +35,7 @@ import com.jdgames.notes.Database.DatabaseClient;
 import com.jdgames.notes.Entity.Notes;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -41,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private InterstitialAd interstitialAd = null;
 
     List<NoteParse> notesArrayList = new ArrayList<>();
-    GridViewAdapter gridViewAdapter;
 
     AppUpdateManager appUpdateManager;
     private InstallStateUpdatedListener installStateUpdatedListener;
@@ -59,29 +61,35 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         super.onOptionsItemSelected(item);
         if (item.getItemId() == R.id.about) {
-            Toast.makeText(this, "Developed with ❤️ by JD", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Developed by JD with ❤️", Toast.LENGTH_SHORT).show();
             return true;
         }
         return false;
     }
+
+    RecyclerView recyclerView;
+    NotesAdapter notesAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        notesArrayList.add(new NoteParse(-1, "", ""));
-        gridViewAdapter = new GridViewAdapter(this, R.layout.grid_view, notesArrayList);
-        GridView gridView = findViewById(R.id.gridView);
-        gridView.setAdapter(gridViewAdapter);
+        recyclerView = findViewById(R.id.recyclerView);
 
-        gridView.setOnItemClickListener((parent, view, position, id) -> {
+        notesArrayList.add(new NoteParse(-1, "", ""));
+        StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
+        recyclerView.setLayoutManager(staggeredGridLayoutManager);
+        notesAdapter = new NotesAdapter(MainActivity.this, notesArrayList);
+        recyclerView.setAdapter(notesAdapter);
+
+        ItemClickSupport.addTo(recyclerView).setOnItemClickListener((recyclerView, position, v) -> {
             Intent intent = new Intent(MainActivity.this, ShowNote.class);
             intent.putExtra("id", notesArrayList.get(position).getId());
             startActivity(intent);
         });
 
-        gridView.setOnItemLongClickListener((parent, view, position, id) -> {
+        ItemClickSupport.addTo(recyclerView).setOnItemLongClickListener((recyclerView, position, v) -> {
             loadInterstitialAd();
             new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle("Delete Note")
@@ -90,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                         DatabaseClient.getInstance(getApplicationContext())
                                 .getAppDatabase().notesDao().deleteNoteWithID(notesArrayList.get(position).getId());
                         notesArrayList.remove(position);
-                        gridViewAdapter.notifyDataSetChanged();
+                        notesAdapter.notifyDataSetChanged();
                         if (interstitialAd != null) {
                             interstitialAd.show(MainActivity.this);
                         }
@@ -168,8 +176,9 @@ public class MainActivity extends AppCompatActivity {
         for (Notes note : notesList) {
             notesArrayList.add(new NoteParse(note.getId(), note.getTitle(), note.getSubtitle()));
         }
+        Collections.reverse(notesArrayList);
         notesArrayList.add(new NoteParse(-1, "", ""));
-        gridViewAdapter.notifyDataSetChanged();
+        notesAdapter.notifyDataSetChanged();
     }
 
     private void checkUpdate() {
