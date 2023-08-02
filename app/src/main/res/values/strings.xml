@@ -2,6 +2,7 @@
     <string name="app_name">Notes</string>
     <string name="write_something_here">Write something here</string>
     <string name="about">About</string>
+    <string name="title">Enter Title</string>
 
     <!--  Test Ad IDs  -->
     <!--<string name="AdMob_Application_ID">ca-app-pub-3940256099942544~3347511713</string>

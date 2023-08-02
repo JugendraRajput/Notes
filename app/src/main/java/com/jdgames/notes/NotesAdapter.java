@@ -1,5 +1,6 @@
 package com.jdgames.notes;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,6 +30,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.ViewHolder> 
         return viewHolder;
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull NotesAdapter.ViewHolder holder, int position) {
 
@@ -44,6 +46,10 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.ViewHolder> 
 
             holder.titleTextView.setText(noteParse.getTitle());
             holder.subtitleTextView.setText(noteParse.getSubtitle());
+            if (noteParse.getSubtitle().length() > 150) {
+                holder.subtitleTextView.setText(noteParse.getSubtitle().substring(0, 149) + "...");
+            }
+
         }
     }
 

@@ -90,39 +90,42 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ItemClickSupport.addTo(recyclerView).setOnItemLongClickListener((recyclerView, position, v) -> {
-            loadInterstitialAd();
-            new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle("Delete Note")
-                    .setMessage("Do you want to Delete this Note?")
-                    .setPositiveButton("Delete", (dialogInterface, i) -> {
-                        DatabaseClient.getInstance(getApplicationContext())
-                                .getAppDatabase().notesDao().deleteNoteWithID(notesArrayList.get(position).getId());
-                        notesArrayList.remove(position);
-                        notesAdapter.notifyDataSetChanged();
-                        if (interstitialAd != null) {
-                            interstitialAd.show(MainActivity.this);
-                        }
-                    })
-                    .setOnCancelListener(dialog -> {
-                        if (interstitialAd != null) {
-                            interstitialAd.show(MainActivity.this);
-                        }
-                    })
-                    .setOnDismissListener(dialog -> {
-                        if (interstitialAd != null) {
-                            interstitialAd.show(MainActivity.this);
-                        }
-                    })
-                    .setNegativeButton("Cancel", (dialog, which) -> {
-                        if (interstitialAd != null) {
-                            interstitialAd.show(MainActivity.this);
-                        }
-                    })
-                    .show();
+            if (notesArrayList.get(position).getId() != -1) {
+                loadInterstitialAd();
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle("Delete Note")
+                        .setMessage("Do you want to Delete this Note?")
+                        .setPositiveButton("Delete", (dialogInterface, i) -> {
+                            DatabaseClient.getInstance(getApplicationContext())
+                                    .getAppDatabase().notesDao().deleteNoteWithID(notesArrayList.get(position).getId());
+                            notesArrayList.remove(position);
+                            notesAdapter.notifyDataSetChanged();
+                            if (interstitialAd != null) {
+                                interstitialAd.show(MainActivity.this);
+                            }
+                        })
+                        .setOnCancelListener(dialog -> {
+                            if (interstitialAd != null) {
+                                interstitialAd.show(MainActivity.this);
+                            }
+                        })
+                        .setOnDismissListener(dialog -> {
+                            if (interstitialAd != null) {
+                                interstitialAd.show(MainActivity.this);
+                            }
+                        })
+                        .setNegativeButton("Cancel", (dialog, which) -> {
+                            if (interstitialAd != null) {
+                                interstitialAd.show(MainActivity.this);
+                            }
+                        })
+                        .show();
+            }
+
             return true;
         });
 
-        MobileAds.initialize(this);
+       /* MobileAds.initialize(this);
 
         AdRequest adRequest = new AdRequest.Builder().build();
         adView = findViewById(R.id.ad_view);
@@ -137,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         appUpdateManager.registerListener(installStateUpdatedListener);
-        checkUpdate();
+        checkUpdate();*/
     }
 
     public void loadInterstitialAd() {
