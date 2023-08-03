@@ -125,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-       /* MobileAds.initialize(this);
+        MobileAds.initialize(this);
 
         AdRequest adRequest = new AdRequest.Builder().build();
         adView = findViewById(R.id.ad_view);
@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         appUpdateManager.registerListener(installStateUpdatedListener);
-        checkUpdate();*/
+        checkUpdate();
     }
 
     public void loadInterstitialAd() {
